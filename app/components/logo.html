@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quins Business Cards</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        background: white;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .print-button {
+        text-align: center;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+      }
+
+      .print-btn {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .print-btn:hover {
+        background: #45a049;
+      }
+
+      .pdf-btn {
+        background: #2196f3;
+      }
+
+      .pdf-btn:hover {
+        background: #1976d2;
+      }
+
+      .container {
+        display: grid;
+        grid-template-columns: repeat(2, 350px);
+        gap: 30px;
+        justify-content: center;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .card {
+        width: 350px;
+        height: 200px;
+        border-radius: 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+        background: white;
+        display: flex;
+        border: 1px solid #e0e0e0;
+      }
+
+      .card-cosmetics {
+        border-top: 5px solid #ff8c00;
+        border-left: 2px solid #32cd32;
+      }
+
+      .card-fashion {
+        border-top: 5px solid #ff8c00;
+        border-left: 2px solid #1e90ff;
+      }
+
+      .image-section {
+        width: 140px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .cosmetics-bg {
+        background: linear-gradient(
+          150deg,
+          #ff8c00 0%,
+          #ffa500 30%,
+          #32cd32 100%
+        );
+      }
+
+      .fashion-bg {
+        background: linear-gradient(
+          150deg,
+          #ff8c00 0%,
+          #ffa500 30%,
+          #1e90ff 100%
+        );
+      }
+
+      .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.3);
+      }
+
+      .image-placeholder {
+        font-size: 50px;
+        margin-bottom: 10px;
+      }
+
+      .upload-label {
+        font-size: 11px;
+        color: white;
+        text-align: center;
+        padding: 8px 15px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+
+      .upload-label:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .upload-input {
+        display: none;
+      }
+
+      .uploaded-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .content-section {
+        flex: 1;
+        padding: 15px 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .content-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .logo-q {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: white;
+      }
+
+      .logo-cosmetics {
+        background: #32cd32;
+      }
+
+      .logo-fashion {
+        background: #1e90ff;
+      }
+
+      .brand-text {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .brand-name {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1a1a1a;
+        letter-spacing: 0.5px;
+        line-height: 1.2;
+      }
+
+      .name {
+        font-size: 13px;
+        color: #444;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+
+      .contact-info {
+        font-size: 10px;
+        color: #2c2c2c;
+        line-height: 1.6;
+      }
+
+      .contact-info div {
+        margin-bottom: 1px;
+      }
+
+      .email {
+        color: #8b5cf6;
+        font-weight: 500;
+      }
+
+      .whatsapp {
+        color: #25d366;
+        font-weight: 500;
+      }
+
+      @media print {
+        @page {
+          size: A4;
+          margin: 10mm;
+        }
+
+        * {
+          font-weight: bold !important;
+        }
+
+        body {
+          padding: 0;
+        }
+
+        .print-button {
+          display: none;
+        }
+
+        .container {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          grid-template-rows: repeat(4, 1fr);
+          gap: 8mm;
+          max-width: 100%;
+          height: 100vh;
+          page-break-after: avoid;
+        }
+
+        .card {
+          width: 100%;
+          height: 100%;
+          box-shadow: none;
+          border: 1px solid #ddd;
+          page-break-inside: avoid;
+        }
+
+        .upload-label {
+          display: none;
+        }
+
+        .logo-q {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          background-color: #32cd32 !important;
+          color: white !important;
+          border: 2px solid #32cd32;
+        }
+
+        .logo-fashion {
+          background-color: #1e90ff !important;
+          border: 2px solid #1e90ff;
+        }
+
+        .card-cosmetics,
+        .card-fashion {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .cosmetics-bg,
+        .fashion-bg {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="print-button">
+      <button class="print-btn" onclick="window.print()">
+        🖨️ Print Business Cards
+      </button>
+      <button class="print-btn pdf-btn" onclick="downloadPDF()">
+        📄 Download as PDF
+      </button>
+    </div>
+
+    <div class="container" id="cardsContainer">
+      <!-- Cosmetics Card 1 -->
+      <div class="card card-cosmetics">
+        <div class="image-section cosmetics-bg">
+          <img
+            id="cosmeticsImg1"
+            class="uploaded-image"
+            style="display: none"
+            alt="Cosmetics"
+          />
+          <div class="image-overlay" id="cosmeticsOverlay1">
+            <div class="image-placeholder">💄</div>
+            <label for="cosmeticsUpload1" class="upload-label"
+              >Upload Image</label
+            >
+            <input
+              type="file"
+              id="cosmeticsUpload1"
+              class="upload-input"
+              accept="image/*"
+            />
+          </div>
+        </div>
+
+        <div class="content-section">
+          <div class="content-header">
+            <div class="logo-q logo-cosmetics">Q</div>
+            <div class="brand-text">
+              <div class="brand-name">Quins Cosmetics</div>
+              <div class="name">Jane Nkunja</div>
+            </div>
+          </div>
+          <div class="contact-info">
+            <div class="email">✉ wanjankunja1@gmail.com</div>
+            <div>📞 +254704829894</div>
+            <div class="whatsapp">💬 WhatsApp: +254704829894</div>
+            <div>☎ Tel: +254728810475</div>
+            <div>📍 Parliament Buildings</div>
+            <div>P.O Box 41842-00100 Nairobi, Kenya</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fashion Card 1 -->
+      <div class="card card-fashion">
+        <div class="image-section fashion-bg">
+          <img
+            id="fashionImg1"
+            class="uploaded-image"
+            style="display: none"
+            alt="Fashion"
+          />
+          <div class="image-overlay" id="fashionOverlay1">
+            <div class="image-placeholder">👗</div>
+            <label for="fashionUpload1" class="upload-label"
+              >Upload Image</label
+            >
+            <input
+              type="file"
+              id="fashionUpload1"
+              class="upload-input"
+              accept="image/*"
+            />
+          </div>
+        </div>
+
+        <div class="content-section">
+          <div class="content-header">
+            <div class="logo-q logo-fashion">Q</div>
+            <div class="brand-text">
+              <div class="brand-name">Quins Fashions</div>
+              <div class="name">Jane Nkunja</div>
+            </div>
+          </div>
+          <div class="contact-info">
+            <div class="email">✉ wanjankunja1@gmail.com</div>
+            <div>📞 +254704829894</div>
+            <div class="whatsapp">💬 WhatsApp: +254704829894</div>
+            <div>☎ Tel: +254728810475</div>
+            <div>📍 Parliament Buildings</div>
+            <div>P.O Box 41842-00100 Nairobi, Kenya</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cosmetics Card 2 -->
+      <div class="card card-cosmetics">
+        <div class="image-section cosmetics-bg">
+          <img
+            id="cosmeticsImg2"
+            class="uploaded-image"
+            style="display: none"
+            alt="Cosmetics"
+          />
+          <div class="image-overlay" id="cosmeticsOverlay2">
+            <div class="image-placeholder">💄</div>
+            <label for="cosmeticsUpload2" class="upload-label"
+              >Upload Image</label
+            >
+            <input
+              type="file"
+              id="cosmeticsUpload2"
+              class="upload-input"
+              accept="image/*"
+            />
+          </div>
+        </div>
+
+        <div class="content-section">
+          <div class="content-header">
+            <div class="logo-q logo-cosmetics">Q</div>
+            <div class="brand-text">
+              <div class="brand-name">Quins Cosmetics</div>
+              <div class="name">Jane Nkunja</div>
+            </div>
+          </div>
+          <div class="contact-info">
+            <div class="email">✉ wanjankunja1@gmail.com</div>
+            <div>📞 +254704829894</div>
+            <div class="whatsapp">💬 WhatsApp: +254704829894</div>
+            <div>☎ Tel: +254728810475</div>
+            <div>📍 Parliament Buildings</div>
+            <div>P.O Box 41842-00100 Nairobi, Kenya</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fashion Card 2 -->
+      <div class="card card-fashion">
+        <div class="image-section fashion-bg">
+          <img
+            id="fashionImg2"
+            class="uploaded-image"
+            style="display: none"
+            alt="Fashion"
+          />
+          <div class="image-overlay" id="fashionOverlay2">
+            <div class="image-placeholder">👗</div>
+            <label for="fashionUpload2" class="upload-label"
+              >Upload Image</label
+            >
+            <input
+              type="file"
+              id="fashionUpload2"
+              class="upload-input"
+              accept="image/*"
+            />
+          </div>
+        </div>
+
+        <div class="content-section">
+          <div class="content-header">
+            <div class="logo-q logo-fashion">Q</div>
+            <div class="brand-text">
+              <div class="brand-name">Quins Fashions</div>
+              <div class="name">Jane Nkunja</div>
+            </div>
+          </div>
+          <div class="contact-info">
+            <div class="email">✉ wanjankunja1@gmail.com</div>
+            <div>📞 +254704829894</div>
+            <div class="whatsapp">💬 WhatsApp: +254704829894</div>
+            <div>☎ Tel: +254728810475</div>
+            <div>📍 Parliament Buildings</div>
+            <div>P.O Box 41842-00100 Nairobi, Kenya</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cosmetics Card 3 -->
+      <div class="card card-cosmetics">
+        <div class="image-section cosmetics-bg">
+          <img
+            id="cosmeticsImg3"
+            class="uploaded-image"
+            style="display: none"
+            alt="Cosmetics"
+          />
+          <div class="image-overlay" id="cosmeticsOverlay3">
+            <div class="image-placeholder">💄</div>
+            <label for="cosmeticsUpload3" class="upload-label"
+              >Upload Image</label
+            >
+            <input
+              type="file"
+              id="cosmeticsUpload3"
+              class="upload-input"
+              accept="image/*"
+            />
+          </div>
+        </div>
+
+        <div class="content-section">
+          <div class="content-header">
+            <div class="logo-q logo-cosmetics">Q</div>
+            <div class="brand-text">
+              <div class="brand-name">Quins Cosmetics</div>
+              <div class="name">Jane Nkunja</div>
+            </div>
+          </div>
+          <div class="contact-info">
+            <div class="email">✉ wanjankunja1@gmail.com</div>
+            <div>📞 +254704829894</div>
+            <div class="whatsapp">💬 WhatsApp: +254704829894</div>
+            <div>☎ Tel: +254728810475</div>
+            <div>📍 Parliament Buildings</div>
+            <div>P.O Box 41842-00100 Nairobi, Kenya</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fashion Card 3 -->
+      <div class="card card-fashion">
+        <div class="image-section fashion-bg">
+          <img
+            id="fashionImg3"
+            class="uploaded-image"
+            style="display: none"
+            alt="Fashion"
+          />
+          <div class="image-overlay" id="fashionOverlay3">
+            <div class="image-placeholder">👗</div>
+            <label for="fashionUpload3" class="upload-label"
+              >Upload Image</label
+            >
+            <input
+              type="file"
+              id="fashionUpload3"
+              class="upload-input"
+              accept="image/*"
+            />
+          </div>
+        </div>
+
+        <div class="content-section">
+          <div class="content-header">
+            <div class="logo-q logo-fashion">Q</div>
+            <div class="brand-text">
+              <div class="brand-name">Quins Fashions</div>
+              <div class="name">Jane Nkunja</div>
+            </div>
+          </div>
+          <div class="contact-info">
+            <div class="email">✉ wanjankunja1@gmail.com</div>
+            <div>📞 +254704829894</div>
+            <div class="whatsapp">💬 WhatsApp: +254704829894</div>
+            <div>☎ Tel: +254728810475</div>
+            <div>📍 Parliament Buildings</div>
+            <div>P.O Box 41842-00100 Nairobi, Kenya</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cosmetics Card 4 -->
+      <div class="card card-cosmetics">
+        <div class="image-section cosmetics-bg">
+          <img
+            id="cosmeticsImg4"
+            class="uploaded-image"
+            style="display: none"
+            alt="Cosmetics"
+          />
+          <div class="image-overlay" id="cosmeticsOverlay4">
+            <div class="image-placeholder">💄</div>
+            <label for="cosmeticsUpload4" class="upload-label"
+              >Upload Image</label
+            >
+            <input
+              type="file"
+              id="cosmeticsUpload4"
+              class="upload-input"
+              accept="image/*"
+            />
+          </div>
+        </div>
+
+        <div class="content-section">
+          <div class="content-header">
+            <div class="logo-q logo-cosmetics">Q</div>
+            <div class="brand-text">
+              <div class="brand-name">Quins Cosmetics</div>
+              <div class="name">Jane Nkunja</div>
+            </div>
+          </div>
+          <div class="contact-info">
+            <div class="email">✉ wanjankunja1@gmail.com</div>
+            <div>📞 +254704829894</div>
+            <div class="whatsapp">💬 WhatsApp: +254704829894</div>
+            <div>☎ Tel: +254728810475</div>
+            <div>📍 Parliament Buildings</div>
+            <div>P.O Box 41842-00100 Nairobi, Kenya</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fashion Card 4 -->
+      <div class="card card-fashion">
+        <div class="image-section fashion-bg">
+          <img
+            id="fashionImg4"
+            class="uploaded-image"
+            style="display: none"
+            alt="Fashion"
+          />
+          <div class="image-overlay" id="fashionOverlay4">
+            <div class="image-placeholder">👗</div>
+            <label for="fashionUpload4" class="upload-label"
+              >Upload Image</label
+            >
+            <input
+              type="file"
+              id="fashionUpload4"
+              class="upload-input"
+              accept="image/*"
+            />
+          </div>
+        </div>
+
+        <div class="content-section">
+          <div class="content-header">
+            <div class="logo-q logo-fashion">Q</div>
+            <div class="brand-text">
+              <div class="brand-name">Quins Fashions</div>
+              <div class="name">Jane Nkunja</div>
+            </div>
+          </div>
+          <div class="contact-info">
+            <div class="email">✉ wanjankunja1@gmail.com</div>
+            <div>📞 +254704829894</div>
+            <div class="whatsapp">💬 WhatsApp: +254704829894</div>
+            <div>☎ Tel: +254728810475</div>
+            <div>📍 Parliament Buildings</div>
+            <div>P.O Box 41842-00100 Nairobi, Kenya</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function setupImageUpload(uploadId, imgId, overlayId) {
+        const input = document.getElementById(uploadId);
+        const img = document.getElementById(imgId);
+        const overlay = document.getElementById(overlayId);
+
+        input.addEventListener("change", function (e) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              img.src = e.target.result;
+              img.style.display = "block";
+              overlay.style.display = "none";
+
+              // Apply the same image to all cards of the same type
+              if (uploadId.includes("cosmetics")) {
+                for (let i = 1; i <= 4; i++) {
+                  const targetImg = document.getElementById("cosmeticsImg" + i);
+                  const targetOverlay = document.getElementById(
+                    "cosmeticsOverlay" + i
+                  );
+                  if (targetImg && targetOverlay) {
+                    targetImg.src = e.target.result;
+                    targetImg.style.display = "block";
+                    targetOverlay.style.display = "none";
+                  }
+                }
+              } else if (uploadId.includes("fashion")) {
+                for (let i = 1; i <= 4; i++) {
+                  const targetImg = document.getElementById("fashionImg" + i);
+                  const targetOverlay = document.getElementById(
+                    "fashionOverlay" + i
+                  );
+                  if (targetImg && targetOverlay) {
+                    targetImg.src = e.target.result;
+                    targetImg.style.display = "block";
+                    targetOverlay.style.display = "none";
+                  }
+                }
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
+      // Setup image uploads for all cards
+      for (let i = 1; i <= 4; i++) {
+        setupImageUpload(
+          "cosmeticsUpload" + i,
+          "cosmeticsImg" + i,
+          "cosmeticsOverlay" + i
+        );
+        setupImageUpload(
+          "fashionUpload" + i,
+          "fashionImg" + i,
+          "fashionOverlay" + i
+        );
+      }
+
+      // PDF Download function
+      function downloadPDF() {
+        // Hide buttons before print
+        const printButton = document.querySelector(".print-button");
+        printButton.style.display = "none";
+
+        // Trigger print dialog which can save as PDF
+        window.print();
+
+        // Show buttons again after print dialog closes
+        setTimeout(() => {
+          printButton.style.display = "flex";
+        }, 100);
+      }
+    </script>
+  </body>
+</html>
