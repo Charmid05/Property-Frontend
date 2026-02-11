@@ -34,9 +34,8 @@ const setCookie = (
     const expires = new Date(Date.now() + seconds * 1000).toUTCString();
     document.cookie = `${name}=${encodeURIComponent(
       value
-    )}; expires=${expires}; path=/; ${
-      secure ? "secure; samesite=strict;" : ""
-    }`;
+    )}; expires=${expires}; path=/; ${secure ? "secure; samesite=strict;" : ""
+      }`;
   }
 };
 
@@ -278,7 +277,7 @@ api.interceptors.response.use(
       const newToken = await refreshAccessToken();
       if (newToken) {
         originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-        return axios(originalRequest);
+        return api(originalRequest);
       } else {
         if (typeof window !== "undefined") {
           window.location.href = "/";

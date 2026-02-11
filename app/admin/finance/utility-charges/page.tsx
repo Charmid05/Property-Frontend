@@ -1,16 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, Eye, Trash2 } from 'lucide-react';
 import { DataTable } from '../components/DataTable';
 import { FilterBar } from '../components/FilterBar';
 import { ActionButton } from '../components/ActionButton';
 import { Modal } from '../components/Modal';
 import { FormInput } from '../components/FormInput';
-import { 
-  getUtilityCharges, 
+import {
+  getUtilityCharges,
   createUtilityCharge,
-  bulkBillUtilityCharges 
+  bulkBillUtilityCharges,
+  deleteUtilityCharge
 } from '@/app/api/finance';
 import { getTenants } from '@/app/api/tenant/api';
 import { getBillingPeriods } from '@/app/api/finance';
@@ -29,7 +30,9 @@ export default function UtilityChargesPage() {
   const [billedFilter, setBilledFilter] = useState('');
   const [periodFilter, setPeriodFilter] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedCharge, setSelectedCharge] = useState<UtilityCharge | null>(null);
+
   const [formData, setFormData] = useState<UtilityChargeCreateRequest>({
     tenant: 0,
     utility_type: 'Electricity',
@@ -100,7 +103,7 @@ export default function UtilityChargesPage() {
     }
 
     if (!confirm(`Bill ${unbilled.length} utility charges?`)) return;
-    
+
     try {
       const result = await bulkBillUtilityCharges({
         billing_period_id: parseInt(periodFilter)
@@ -110,6 +113,23 @@ export default function UtilityChargesPage() {
     } catch (error: any) {
       toast.error(error.message || "Failed to bill charges");
     }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this utility charge?")) return;
+
+    try {
+      await deleteUtilityCharge(id);
+      toast.success("Utility charge deleted successfully");
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete utility charge");
+    }
+  };
+
+  const handleView = (charge: UtilityCharge) => {
+    setSelectedCharge(charge);
+    setShowViewModal(true);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -151,13 +171,39 @@ export default function UtilityChargesPage() {
     {
       header: 'Status',
       accessor: (row: UtilityCharge) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-          row.is_billed 
-            ? 'bg-green-800 text-white' 
-            : 'bg-orange-500 text-white'
-        }`}>
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${row.is_billed
+          ? 'bg-green-800 text-white'
+          : 'bg-orange-500 text-white'
+          }`}>
           {row.is_billed ? 'BILLED' : 'UNBILLED'}
         </span>
+      )
+    },
+    {
+      header: 'Actions',
+      accessor: (row: UtilityCharge) => (
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleView(row);
+            }}
+            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+            title="View Details"
+          >
+            <Eye size={18} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete(row.id);
+            }}
+            className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+            title="Delete Charge"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
       )
     }
   ];
@@ -355,7 +401,7 @@ export default function UtilityChargesPage() {
               Cancel
             </ActionButton>
             <ActionButton
-              onClick={() => {}}
+              onClick={() => { }}
               variant="primary"
               type="submit"
             >
@@ -363,6 +409,68 @@ export default function UtilityChargesPage() {
             </ActionButton>
           </div>
         </form>
+      </Modal>
+
+      {/* View Modal */}
+      <Modal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        title="Utility Charge Details"
+      >
+        {selectedCharge && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold">Type</p>
+                <p className="text-sm font-medium">{selectedCharge.utility_type}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold">Amount</p>
+                <p className="text-sm font-bold text-orange-600">${selectedCharge.amount}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold">Tenant</p>
+                <p className="text-sm">
+                  {tenants.find(t => t.id === selectedCharge.tenant)?.user
+                    ? `${tenants.find(t => t.id === selectedCharge.tenant).user.first_name} ${tenants.find(t => t.id === selectedCharge.tenant).user.last_name}`
+                    : `Tenant #${selectedCharge.tenant}`}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold">Billing Period</p>
+                <p className="text-sm">
+                  {periods.find(p => p.id === selectedCharge.billing_period)?.name || `Period #${selectedCharge.billing_period}`}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold">Reference</p>
+                <p className="text-sm font-mono">{selectedCharge.reference_number || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-semibold">Status</p>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedCharge.is_billed ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                  }`}>
+                  {selectedCharge.is_billed ? 'BILLED' : 'UNBILLED'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase font-semibold">Description</p>
+              <p className="text-sm bg-gray-50 p-3 rounded-md border border-gray-100 italic">
+                {selectedCharge.description || 'No description provided.'}
+              </p>
+            </div>
+            {/* Removed warning about billed charges deletion */}
+            <div className="mt-6 flex justify-end">
+              <ActionButton
+                onClick={() => setShowViewModal(false)}
+                variant="secondary"
+              >
+                Close
+              </ActionButton>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

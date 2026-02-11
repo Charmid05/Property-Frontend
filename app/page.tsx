@@ -17,35 +17,40 @@ export default function HomePage() {
   useEffect(() => {
     function handleRouting() {
       if (loading) return;
-      if (!isLoggedIn || !user) {
-        router.replace("/");
+
+      if (!isLoggedIn) {
+        // Already on home page, nothing to do
         return;
       }
-      if (
-        !globalUserStore.isLoaded ||
-        globalUserStore.userData?.id !== user.id
-      ) {
-        globalUserStore.setUserData(user);
-      }
 
-      const userRole = globalUserStore.getUserRole() || user.role;
+      if (isLoggedIn && user) {
+        if (
+          !globalUserStore.isLoaded ||
+          globalUserStore.userData?.id !== user.id
+        ) {
+          globalUserStore.setUserData(user);
+        }
 
-      switch (userRole.toLowerCase()) {
-        case "admin":
-          router.replace("/admin");
-          break;
-        case "property_manager":
-          router.replace("/property-manager");
-          break;
-        case "tenant":
-          router.replace("/tenant");
-          break;
-        case "landlord":
-          router.replace("/landlord");
-          break;
-        default:
-          router.replace("/auth/login");
-          break;
+        const userRole = globalUserStore.getUserRole() || user.role;
+        if (!userRole) return;
+
+        switch (userRole.toLowerCase()) {
+          case "admin":
+            router.replace("/admin");
+            break;
+          case "property_manager":
+            router.replace("/property-manager");
+            break;
+          case "tenant":
+            router.replace("/tenant");
+            break;
+          case "landlord":
+            router.replace("/landlord");
+            break;
+          default:
+            // For unknown roles, maybe take to login or keep here
+            break;
+        }
       }
     }
 

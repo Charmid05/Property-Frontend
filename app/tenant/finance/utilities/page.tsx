@@ -1,15 +1,23 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Zap, Droplet, Flame, Wifi, Trash2, Shield } from "lucide-react";
+import { Zap, Droplet, Flame, Wifi, Trash2, Shield, CreditCard, DollarSign } from "lucide-react";
 import { DataTable } from "@/app/admin/finance/components/DataTable";
 import { FilterBar } from "@/app/admin/finance/components/FilterBar";
-import { getUtilityCharges } from "@/app/api/finance";
-import { getBillingPeriods } from "@/app/api/finance";
-import type { UtilityCharge } from "@/types/finance";
+import {
+  getUtilityCharges,
+  getBillingPeriods,
+  quickPayment
+} from "@/app/api/finance";
+import type { UtilityCharge, QuickPaymentRequest } from "@/types/finance";
+import { useAuthContext } from "@/context/ApiContext";
 import { toast } from "sonner";
+import { Modal } from "@/app/admin/finance/components/Modal";
+import { ActionButton } from "@/app/admin/finance/components/ActionButton";
+import { FormInput } from "@/app/admin/finance/components/FormInput";
 
 export default function TenantUtilitiesPage() {
+  const { user } = useAuthContext();
   const [charges, setCharges] = useState<UtilityCharge[]>([]);
   const [periods, setPeriods] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,15 +26,19 @@ export default function TenantUtilitiesPage() {
   const [billedFilter, setBilledFilter] = useState("");
 
   useEffect(() => {
-    loadData();
-  }, [typeFilter, periodFilter, billedFilter]);
+    if (user?.tenant_info?.id) {
+      loadData();
+    }
+  }, [typeFilter, periodFilter, billedFilter, user]);
 
   const loadData = async () => {
+    if (!user?.tenant_info?.id) return;
     setIsLoading(true);
     try {
       const [chargesData, periodsData] = await Promise.all([
         getUtilityCharges({
           utility_type: typeFilter || undefined,
+          tenant: user.tenant_info.id,
           billing_period: periodFilter ? parseInt(periodFilter) : undefined,
           is_billed: billedFilter ? billedFilter === "true" : undefined,
         }),
@@ -40,6 +52,49 @@ export default function TenantUtilitiesPage() {
       toast.error("Failed to load utility charges");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const [selectedCharge, setSelectedCharge] = useState<UtilityCharge | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentData, setPaymentData] = useState({
+    payment_method: "mobile_money",
+    reference_number: "",
+    notes: ""
+  });
+
+  const handlePayNow = (charge: UtilityCharge) => {
+    setSelectedCharge(charge);
+    setPaymentData({
+      payment_method: "mobile_money",
+      reference_number: "",
+      notes: `Payment for ${charge.utility_type} - ${charge.reference_number || charge.id}`
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCharge || !user?.tenant_info?.id) return;
+
+    setIsProcessing(true);
+    try {
+      await quickPayment({
+        tenant_id: user.tenant_info.id,
+        amount: selectedCharge.amount,
+        payment_method: paymentData.payment_method,
+        reference_number: paymentData.reference_number || `UTIL-${Date.now()}`,
+        notes: paymentData.notes
+      });
+
+      toast.success("Payment processed successfully");
+      setShowPaymentModal(false);
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to process payment");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -98,14 +153,35 @@ export default function TenantUtilitiesPage() {
       header: "Status",
       accessor: (row: UtilityCharge) => (
         <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            row.is_billed
-              ? "bg-green-100 text-green-800"
-              : "bg-yellow-100 text-yellow-800"
-          }`}
+          className={`px-3 py-1 rounded-full text-xs font-semibold ${row.is_billed
+            ? "bg-green-100 text-green-800"
+            : "bg-yellow-100 text-yellow-800"
+            }`}
         >
           {row.is_billed ? "Billed" : "Pending"}
         </span>
+      ),
+    },
+    {
+      header: "Actions",
+      accessor: (row: UtilityCharge) => (
+        <div className="flex gap-2">
+          {!row.is_billed && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePayNow(row);
+              }}
+              className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1 rounded-md hover:bg-orange-600 transition-colors text-xs font-medium"
+            >
+              <CreditCard className="h-3 w-3" />
+              Pay Now
+            </button>
+          )}
+          {row.is_billed && (
+            <span className="text-xs text-gray-500 italic">Invoiced</span>
+          )}
+        </div>
       ),
     },
   ];
@@ -246,7 +322,7 @@ export default function TenantUtilitiesPage() {
       {/* Filters */}
       <FilterBar
         searchTerm=""
-        onSearchChange={() => {}}
+        onSearchChange={() => { }}
         filters={[
           {
             name: "type",
@@ -297,6 +373,81 @@ export default function TenantUtilitiesPage() {
           emptyMessage="No utility charges found"
         />
       </div>
+
+      {/* Payment Modal */}
+      <Modal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        title="Pay Utility Charge"
+      >
+        <form onSubmit={handlePaymentSubmit}>
+          <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-600">Utility Type:</span>
+              <span className="font-bold text-black border-none">{selectedCharge?.utility_type}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Amount Due:</span>
+              <span className="text-xl font-bold text-orange-600 border-none">
+                ${selectedCharge?.amount}
+              </span>
+            </div>
+          </div>
+
+          <FormInput
+            label="Payment Method"
+            name="payment_method"
+            value={paymentData.payment_method}
+            onChange={(e) => setPaymentData(prev => ({ ...prev, payment_method: e.target.value }))}
+            options={[
+              { value: 'mobile_money', label: 'Mobile Money' },
+              { value: 'bank_transfer', label: 'Bank Transfer' },
+              { value: 'card', label: 'Debit/Credit Card' },
+              { value: 'cash', label: 'Cash' }
+            ]}
+            required
+          />
+
+          <FormInput
+            label="Reference Number"
+            name="reference_number"
+            value={paymentData.reference_number}
+            onChange={(e) => setPaymentData(prev => ({ ...prev, reference_number: e.target.value }))}
+            placeholder="e.g. MPesa Code or Bank Ref"
+          />
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              rows={3}
+              value={paymentData.notes}
+              onChange={(e) => setPaymentData(prev => ({ ...prev, notes: e.target.value }))}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <ActionButton
+              onClick={() => setShowPaymentModal(false)}
+              variant="secondary"
+              type="button"
+              disabled={isProcessing}
+            >
+              Cancel
+            </ActionButton>
+            <ActionButton
+              onClick={() => { }}
+              variant="primary"
+              type="submit"
+              disabled={isProcessing}
+            >
+              {isProcessing ? "Processing..." : `Pay $${selectedCharge?.amount}`}
+            </ActionButton>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

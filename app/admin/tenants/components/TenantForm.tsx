@@ -108,7 +108,8 @@ const TenantForm: React.FC<TenantFormProps> = ({
         property: propertyId,
       });
       setUnits(response.results || []);
-      setValue("unit", 0); // Reset unit selection
+      // @ts-ignore
+      setValue("unit", ""); // Reset unit selection
     } catch (error) {
       console.error("Failed to load units:", error);
       setUnits([]);
@@ -118,12 +119,27 @@ const TenantForm: React.FC<TenantFormProps> = ({
   };
 
   const onSubmit = async (data: TenantCreateRequest) => {
+    // Clean data: convert empty strings to null for optional fields
+    const cleanedData = { ...data };
+
+    if (!cleanedData.lease_end_date) cleanedData.lease_end_date = null;
+    if (!cleanedData.move_in_date) cleanedData.move_in_date = null;
+    if (!cleanedData.monthly_rent_override)
+      cleanedData.monthly_rent_override = null;
+    if (!cleanedData.deposit_amount_override)
+      cleanedData.deposit_amount_override = null;
+
+    // Ensure unit is a number
+    if (cleanedData.unit) {
+      cleanedData.unit = Number(cleanedData.unit);
+    }
+
     setIsSubmitting(true);
     try {
       if (isEditing && tenant) {
-        await updateTenant(tenant.id, data);
+        await updateTenant(tenant.id, cleanedData);
       } else {
-        await createTenant(data);
+        await createTenant(cleanedData);
       }
       onSuccess();
       onClose();
@@ -165,34 +181,27 @@ const TenantForm: React.FC<TenantFormProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Property *
                 </label>
-                <Controller
-                  name="unit" // This should be a separate field for property selection
-                  control={control}
-                  rules={{ required: "Property is required" }}
-                  render={({ field }) => (
-                    <select
-                      value={watchProperty || ""}
-                      onChange={(e) => {
-                        const propertyId = Number(e.target.value);
-                        handlePropertyChange(propertyId);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      disabled={isLoadingProperties}
-                    >
-                      <option value="">
-                        {isLoadingProperties
-                          ? "Loading properties..."
-                          : "Select a property"}
-                      </option>
-                      {properties.map((property) => (
-                        <option key={property.id} value={property.id}>
-                          {property.name} - {property.address}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                />
-                {errors.unit && (
+                <select
+                  value={watchProperty || ""}
+                  onChange={(e) => {
+                    const propertyId = Number(e.target.value);
+                    handlePropertyChange(propertyId);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  disabled={isLoadingProperties}
+                >
+                  <option value="">
+                    {isLoadingProperties
+                      ? "Loading properties..."
+                      : "Select a property"}
+                  </option>
+                  {properties.map((property) => (
+                    <option key={property.id} value={property.id}>
+                      {property.name} - {property.address}
+                    </option>
+                  ))}
+                </select>
+                {errors.unit && !watchProperty && (
                   <p className="mt-1 text-sm text-red-600">
                     Property is required
                   </p>
@@ -210,6 +219,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                   render={({ field }) => (
                     <select
                       {...field}
+                      value={field.value || ""}
                       onChange={(e) => field.onChange(Number(e.target.value))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       disabled={isLoadingUnits || !watchProperty}
@@ -252,7 +262,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                 )}
                 {watchUnit &&
                   units.find((u) => u.id === watchUnit)?.occupied_status ===
-                    "Occupied" && (
+                  "Occupied" && (
                     <p className="mt-1 text-sm text-amber-600 flex items-center gap-1">
                       ⚠️ Warning: This unit is currently occupied
                     </p>
@@ -316,6 +326,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                       <input
                         {...field}
                         type="email"
+                        value={field.value ?? ""}
                         className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         placeholder="Enter email address"
                       />
@@ -367,6 +378,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                     <input
                       {...field}
                       type="text"
+                      value={field.value ?? ""}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       placeholder="Enter last name"
                     />
@@ -392,6 +404,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                       <input
                         {...field}
                         type="tel"
+                        value={field.value ?? ""}
                         className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         placeholder="Enter phone number"
                       />
@@ -442,6 +455,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                       <input
                         {...field}
                         type="password"
+                        value={field.value ?? ""}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         placeholder="Enter password"
                       />
@@ -470,6 +484,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                       <input
                         {...field}
                         type="password"
+                        value={field.value ?? ""}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         placeholder="Confirm password"
                       />
@@ -553,7 +568,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                     <input
                       {...field}
                       type="date"
-                      value={field.value !== null ? field.value : ""}
+                      value={field.value ?? ""}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   )}
@@ -571,7 +586,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                     <input
                       {...field}
                       type="date"
-                      value={field.value !== null ? field.value : ""}
+                      value={field.value ?? ""}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   )}
@@ -642,6 +657,7 @@ const TenantForm: React.FC<TenantFormProps> = ({
                   <FileText className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <textarea
                     {...field}
+                    value={field.value ?? ""}
                     rows={3}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
                     placeholder="Enter any additional notes..."

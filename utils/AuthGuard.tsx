@@ -40,9 +40,10 @@ export default function AuthGuard({
     async function checkAuthentication() {
       setIsCheckingAuth(true);
 
-      const isPublicPath = publicRoutes.some((route) =>
-        pathname?.startsWith(route)
-      );
+      const isPublicPath = publicRoutes.some((route) => {
+        if (route === "/") return pathname === "/";
+        return pathname?.startsWith(route);
+      });
       if (isPublicPath) {
         setIsAuthorized(true);
         setIsCheckingAuth(false);
